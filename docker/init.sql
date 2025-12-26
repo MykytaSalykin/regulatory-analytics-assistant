@@ -116,3 +116,66 @@ CREATE TABLE rag.chunks (
 
 CREATE INDEX idx_chunks_document ON rag.chunks(document_id);
 CREATE INDEX idx_chunks_embedding ON rag.chunks USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
+
+CREATE TABLE finance.survey_metrics (
+    metric_id SERIAL PRIMARY KEY,
+    exercise VARCHAR(100) NOT NULL,
+    period VARCHAR(50) NOT NULL,
+    item_code VARCHAR(50) NOT NULL,
+    item_label TEXT NOT NULL,
+    value NUMERIC(20, 2),
+    answer_rank INTEGER,
+    source VARCHAR(255),
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_survey_metrics_period ON finance.survey_metrics(period);
+CREATE INDEX idx_survey_metrics_item_code ON finance.survey_metrics(item_code);
+
+CREATE TABLE rag.document_chunks_raw (
+    chunk_id SERIAL PRIMARY KEY,
+    file_name VARCHAR(500) NOT NULL,
+    page_number INTEGER,
+    chunk_index INTEGER NOT NULL,
+    content TEXT NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE rag.document_embeddings (
+    embedding_id SERIAL PRIMARY KEY,
+    chunk_id INTEGER NOT NULL REFERENCES rag.document_chunks_raw(chunk_id) ON DELETE CASCADE,
+    embedding vector(1536) NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(chunk_id)
+);
+
+CREATE INDEX idx_document_embeddings_vector ON rag.document_embeddings 
+    USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
+
+CREATE OR REPLACE FUNCTION rag.search_chunks(
+    query_embedding vector(1536),
+    match_count integer DEFAULT 5
+)
+RETURNS TABLE (
+    chunk_id integer,
+    file_name varchar(500),
+    page_number integer,
+    content text,
+    similarity float
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        dcr.chunk_id,
+        dcr.file_name,
+        dcr.page_number,
+        dcr.content,
+        1 - (de.embedding <=> query_embedding) as similarity
+    FROM rag.document_chunks_raw dcr
+    JOIN rag.document_embeddings de ON dcr.chunk_id = de.chunk_id
+    ORDER BY de.embedding <=> query_embedding
+    LIMIT match_count;
+END;
+$$;
