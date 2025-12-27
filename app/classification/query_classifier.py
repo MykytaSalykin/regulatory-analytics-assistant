@@ -1,33 +1,40 @@
-def classify_query(text: str) -> str:
-    text_l = text.lower()
+def classify_query(query: str) -> str:
+    q = query.lower()
 
     analytics_keywords = [
-        "how many",
-        "percentage",
-        "share",
-        "trend",
-        "increase",
-        "decrease",
-        "rank",
-        "count",
-        "distribution",
+        "profitability",
+        "capital",
+        "liquidity",
+        "ratio",
+        "metrics",
+        "survey",
+        "expectations",
     ]
 
     document_keywords = [
         "eba",
         "regulation",
+        "regulatory",
         "guideline",
-        "according to",
-        "risk assessment",
-        "policy",
-        "framework",
+        "report",
+        "article",
+        "paragraph",
+        "directive",
+        "compliance",
+        "mentioned",
     ]
 
-    is_analytics = any(k in text_l for k in analytics_keywords)
-    is_document = any(k in text_l for k in document_keywords)
+    has_analytics = any(k in q for k in analytics_keywords)
+    has_document = any(k in q for k in document_keywords)
 
-    if is_analytics and is_document:
+    # Priority rule: explicit document intent wins
+    if has_document and not has_analytics:
+        return "document"
+
+    if has_analytics and has_document:
         return "hybrid"
-    if is_analytics:
+
+    if has_analytics:
         return "analytics"
+
     return "document"
