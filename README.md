@@ -1,207 +1,141 @@
 # Regulatory Analytics Assistant
 
-**Proof of Concept** — AI-powered analytics system for banking regulatory and risk analysis.
+**Proof-of-Concept** system for regulatory analytics in the EU banking domain, combining
+structured survey data analysis with Retrieval-Augmented Generation (RAG) over regulatory documents.
+
+<p align="center">
+  <img src="assets/ui_answer.jpg" width="900">
+</p>
+
+<p align="center">
+  <img src="assets/ui_query.jpg" width="900">
+</p>
+
 
 ## Overview
 
-This system combines:
-- **Structured financial data analytics** (SQL-based queries on EBA survey data)
-- **Retrieval-Augmented Generation (RAG)** over regulatory PDF documents
-- **Intelligent query classification** to route requests appropriately
+This AI system can:
 
-## Domain
+- Answer **analytical questions** using structured EBA survey data (SQL-based)
+- Answer **regulatory questions** using RAG over official EBA PDF documents
+- Handle **hybrid queries** combining statistics and regulatory context
+- Provide **transparent answers with source attribution**
 
-EU banking regulation, specifically:
-- EBA (European Banking Authority) risk analytics
-- Transparency Exercise 2025 data
-- Regulatory reports and guidelines
+The system is designed as a realistic POC following production-style architecture.
 
-## Data Sources
 
-### Structured Data
-- EBA Transparency Exercise 2025 RAQ statistical annex (Excel)
+## Domain & Data
+
+**Domain**
+- EU banking regulation
+- European Banking Authority (EBA)
+- Risk Assessment Questionnaire (RAQ)
+- Transparency Exercise 2025
+
+**Structured data**
+- EBA Transparency Exercise 2025 (RAQ statistical annex)
 - Statistical Data Dictionary (SDD)
 
-### Unstructured Documents (PDF)
+**Unstructured data**
 - EBA Risk Assessment Report (2025)
 - RAQ Booklet (Autumn 2025)
 
+
+## System Capabilities
+
+The system automatically classifies incoming queries into three types:
+
+1. **Analytics**
+   - SQL-based aggregation over survey results  
+   - Example: *"What are the main profitability expectations of banks?"*
+
+2. **Document**
+   - RAG over regulatory PDFs  
+   - Example: *"What risks does the EBA highlight for EU banks?"*
+
+3. **Hybrid**
+   - Combines structured analytics and regulatory context  
+   - Example: *"How many banks expect higher profitability and what risks does the EBA mention?"*
+
+
+## Architecture
+
+- **Query classifier** routes requests to the correct pipeline
+- **Analytics pipeline** executes SQL queries over PostgreSQL
+- **RAG pipeline**
+  - PDF chunking
+  - Vector embeddings (pgvector)
+  - Similarity search
+  - LLM-based answer generation with citations
+- **Hybrid pipeline** merges analytical results with document-based reasoning
+
+
 ## Tech Stack
 
-- **Backend**: Python 3.11+, FastAPI
+- **Language**: Python 3.11+
+- **Backend**: FastAPI
 - **Database**: PostgreSQL 16 + pgvector
+- **Data processing**: Pandas, SQLAlchemy
 - **AI**: OpenAI API (embeddings & generation)
-- **Data**: Pandas, SQLAlchemy
 - **UI**: Streamlit
-- **Deployment**: Docker Compose
+- **Infra**: Docker Compose
+- **Testing**: Pytest
+- **CI/CD**: GitHub Actions
+
 
 ## Project Structure
-
-```
-regulatory-analytics-assistant/
-├── app/
-│   ├── api/           # FastAPI endpoints
-│   ├── analytics/     # SQL-based analytics handlers
-│   ├── rag/           # RAG retrieval & answer generation
-│   ├── classification/# Query classifier
-│   ├── ingestion/     # Data ingestion pipelines
-│   ├── core/          # Database & OpenAI clients
-│   └── schemas/       # Pydantic models
-├── data/
-│   ├── raw/           # Original Excel & PDF files
-│   └── processed/     # Transformed data
-├── docker/
-│   └── init.sql       # Database schema DDL
-├── notebooks/         # Exploratory data analysis
-├── ui/
-│   └── streamlit_app.py  # Streamlit UI
-└── docker-compose.yml
+```text
+app/
+├── api/            # FastAPI endpoints
+├── analytics/      # SQL-based analytics handlers
+├── classification/ # Query classification
+├── rag/            # Retrieval & generation
+├── hybrid/         # Hybrid answering logic
+├── ingestion/      # Data & document ingestion
+├── evaluation/     # Retrieval evaluation
+└── core/           # DB & OpenAI clients
 ```
 
-## Getting Started
 
-### Prerequisites
+## Running the Project
 
-- Docker & Docker Compose
-- Python 3.11+
-- OpenAI API key
-
-### 1. Start PostgreSQL
-
+### 1. Start database
 ```bash
 docker-compose up -d
 ```
-
-This starts PostgreSQL with pgvector extension on port 5432.
-
-### 2. Initialize Database
-
+### 2. Initialize schema
 ```bash
-docker exec -i regulatory_analytics_db psql -U postgres -d regulatory_analytics < docker/init.sql
+docker exec -i regulatory_analytics_db \
+  psql -U postgres -d regulatory_analytics < docker/init.sql
 ```
-
-### 3. Set Environment Variables
-
-Create a `.env` file:
-
-```bash
-OPENAI_API_KEY=your_openai_api_key_here
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=regulatory_analytics
-DB_USER=postgres
-DB_PASSWORD=postgres
-```
-
-### 4. Install Python Dependencies
-
+### 3. Install dependencies
 ```bash
 pip install -r requirements.txt
 ```
-
-### 5. Run Data Ingestion (if needed)
-
+### 4. Set environment variables
 ```bash
-# Ingest survey data (from notebook or script)
-python -m app.ingestion.ingest_documents
-
-# Generate embeddings
-python -m app.rag.embedding_generator
+export OPENAI_API_KEY=your_key_here
 ```
-
-### 6. Start FastAPI Backend
-
+### 5. Run backend
 ```bash
-uvicorn app.api.main:app --reload --port 8000
+uvicorn app.api.main:app --reload
 ```
-
-API will be available at: `http://localhost:8000`
-
-API docs: `http://localhost:8000/docs`
-
-### 7. Start Streamlit UI
-
+### 6. Run UI
 ```bash
 streamlit run ui/streamlit_app.py
 ```
 
-UI will open in your browser at: `http://localhost:8501`
 
-## Usage
+## Evaluation
 
-### Query Types
+Basic retrieval quality is evaluated using Recall@K on known document chunks.
+This provides a sanity check for vector search correctness in the RAG pipeline.
 
-The system automatically classifies queries into three types:
 
-1. **Analytics** — Statistical queries on survey data
-   - Example: "What are the main drivers of profitability expectations?"
+## Limitations (POC)
 
-2. **Document** — Questions about regulatory documents
-   - Example: "What does EBA say about credit risk?"
+- Single-user, local setup
+- Keyword-based query classification
+- Simple chunking strategy
+- No authentication or caching
 
-3. **Hybrid** — Combines both analytics and document context
-   - Example: "How many banks expect profitability to increase and what does EBA recommend?"
-
-### API Endpoints
-
-#### Health Check
-```bash
-curl http://localhost:8000/health
-```
-
-#### Query
-```bash
-curl -X POST http://localhost:8000/query \
-  -H "Content-Type: application/json" \
-  -d '{"query": "What are the profitability expectations?"}'
-```
-
-Response format:
-```json
-{
-  "query_type": "analytics",
-  "answer": "Based on EBA RAQ survey...",
-  "sources": [
-    {
-      "file": "eba_risk_assessment_report_2025-12.pdf",
-      "page": 42,
-      "score": 0.87
-    }
-  ]
-}
-```
-
-## Engineering Principles
-
-- ✅ Clear schema design (finance / rag / meta schemas)
-- ✅ Reproducible data pipelines
-- ✅ Emphasis on explainability and source attribution
-- ✅ Production-style structure
-- ✅ Proper error handling and logging
-
-## Current Limitations (POC)
-
-- Single-user, local deployment only
-- No authentication/authorization
-- Limited analytics handlers (profitability only)
-- Simple character-based text chunking
-- No caching layer
-- Basic query classification (keyword-based)
-
-## Future Enhancements
-
-- [ ] More sophisticated query classifier (LLM-based)
-- [ ] Advanced analytics handlers (capital ratios, liquidity, etc.)
-- [ ] Multi-document reasoning
-- [ ] Query history and feedback loop
-- [ ] Better chunking strategies (semantic, sentence-based)
-- [ ] Caching and performance optimization
-- [ ] Multi-user support with authentication
-
-## License
-
-This is a Proof of Concept project for educational and demonstration purposes.
-
-## Contact
-
-For questions or feedback, please open an issue in the repository.
