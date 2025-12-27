@@ -4,10 +4,6 @@ CREATE SCHEMA IF NOT EXISTS meta;
 CREATE SCHEMA IF NOT EXISTS finance;
 CREATE SCHEMA IF NOT EXISTS rag;
 
--- =========================
--- meta
--- =========================
-
 CREATE TABLE IF NOT EXISTS meta.data_sources (
     source_id SERIAL PRIMARY KEY,
     source_name VARCHAR(255) NOT NULL UNIQUE,
@@ -49,10 +45,6 @@ CREATE TABLE IF NOT EXISTS meta.quality_checks (
     error_message TEXT
 );
 
--- =========================
--- finance
--- =========================
-
 CREATE TABLE IF NOT EXISTS finance.institutions (
     institution_code VARCHAR(50) PRIMARY KEY,
     lei_code VARCHAR(20) UNIQUE,
@@ -93,10 +85,6 @@ CREATE INDEX IF NOT EXISTS idx_metrics_institution ON finance.metrics(institutio
 CREATE INDEX IF NOT EXISTS idx_metrics_period ON finance.metrics(period_code);
 CREATE INDEX IF NOT EXISTS idx_metrics_category ON finance.metrics(metric_category);
 CREATE INDEX IF NOT EXISTS idx_metrics_code ON finance.metrics(metric_code);
-
--- =========================
--- rag
--- =========================
 
 CREATE TABLE IF NOT EXISTS rag.documents (
     document_id BIGSERIAL PRIMARY KEY,
