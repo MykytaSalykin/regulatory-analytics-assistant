@@ -27,5 +27,7 @@ jobs:
       - name: Run tests
         env:
           OPENAI_API_KEY: dummy-key
+          PYTHONPATH: .
         run: |
           pytest -q
+
